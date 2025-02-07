@@ -1,0 +1,92 @@
+{
+    "ALIGNMENT_THRESHOLD": 0.5,
+    "ALIGN_INTERVAL": 1000,
+    "AMM_STEPS_1": 100,
+    "AMM_STEPS_2": 500,
+    "CAM_1": 1,
+    "CAM_2": 2,
+    "CAM_CROP": true,
+    "CAM_INTERVAL": 300,
+    "CAM_MASK": true,
+    "GAIN": 0.15,
+    "INTENSITY_THRESHOLD": 0.4,
+    "LOWER_THRESHOLD": 20,
+    "M1X": 1,
+    "M1Y": 2,
+    "M2X": 3,
+    "M2Y": 4,
+    "MIN_MOVEMENT_THRESHOLD": 0.2,
+    "MOTION_MATRIX_CONSTRAINT": {
+        "py/reduce": [
+            {
+                "py/function": "numpy.core.multiarray._reconstruct"
+            },
+            {
+                "py/tuple": [
+                    {
+                        "py/type": "numpy.ndarray"
+                    },
+                    {
+                        "py/tuple": [
+                            0
+                        ]
+                    },
+                    {
+                        "py/b64": "Yg=="
+                    }
+                ]
+            },
+            {
+                "py/tuple": [
+                    1,
+                    {
+                        "py/tuple": [
+                            4,
+                            4
+                        ]
+                    },
+                    {
+                        "py/reduce": [
+                            {
+                                "py/type": "numpy.dtype"
+                            },
+                            {
+                                "py/tuple": [
+                                    "i8",
+                                    false,
+                                    true
+                                ]
+                            },
+                            {
+                                "py/tuple": [
+                                    3,
+                                    "<",
+                                    null,
+                                    null,
+                                    null,
+                                    -1,
+                                    -1,
+                                    0
+                                ]
+                            }
+                        ]
+                    },
+                    false,
+                    {
+                        "py/b64": "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAA="
+                    }
+                ]
+            }
+        ]
+    },
+    "MOTOR_ACCELERATION": 10000,
+    "MOTOR_TYPE": 2,
+    "MOTOR_VELOCITY": 1000,
+    "OUTPUT_INTERVAL": 15000,
+    "SAMPLES": 5,
+    "UPPER_THRESHOLD": 255,
+    "VIEWER_INTERVAL": 500,
+    "idProduct": "0x4000",
+    "idVendor": "0x104d",
+    "py/object": "__main__.Settings"
+}

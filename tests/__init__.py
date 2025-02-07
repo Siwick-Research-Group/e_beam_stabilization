@@ -1,0 +1,5 @@
+VERSION = "0.1"
+IP = "172.25.12.11"
+PORT = 80
+
+TIMESTAMP_FORMAT = '%Y-%m-%d %H:%M:%S'
