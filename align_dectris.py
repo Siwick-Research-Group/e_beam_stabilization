@@ -33,16 +33,13 @@ class StarGuide(_gui._GuiMainWindow):
         self.logger.info('Initializing GUI without Hardwares.\n')
         self.logger.info(f'Main Thread ID: {threading.get_ident()}')
 
-        self.image_1 = None
-        self.image_2 = None
-
         self.mc = mc.NewFocus8742USB.create('0x104d', '0x4000')
         # self.mc = None
         self.folder_watcher = Workers.FolderWatcherWorker()
         self.align_worker = Workers.AlignWorker(motor_controller=self.mc)
 
         
-        self.save_folder_signal.connect(self.folder_watcher.update_folder_selected)
+        self.save_folder_signal.connect(self.folder_watcher.update_folder_watched)
 
         self.folder_watcher.image_ready.connect(self.update_dectris_image)
         self.folder_watcher.centroid_ready.connect(self.update_dectris_centroid)
@@ -52,9 +49,6 @@ class StarGuide(_gui._GuiMainWindow):
         self.align_worker.centroid_ready.connect(self.update_dectris_centroid)
         self.align_worker.target_ready.connect(self.update_dectris_target)
 
-
-        # self.folder_watcher.worker_thread.start()
-        # self.align_worker.worker_thread.start()
         
         self.acquire_btn.clicked.connect(self.align_worker.acquire_motion_matrix)
         self.acquire_target_signal.connect(self.align_worker.acquire_target)
@@ -68,11 +62,13 @@ class StarGuide(_gui._GuiMainWindow):
         if state == QtCore.Qt.Checked:
             self.align_signal.emit(True)
             self.folder_watcher.centroid_ready.connect(self.align_worker.align)
+            self.folder_watcher.centroids.clear()
             # self.logger.info("Alignment ENABLED")
 
         if state == QtCore.Qt.Unchecked:
             self.align_signal.emit(False)
             self.folder_watcher.centroid_ready.disconnect(self.align_worker.align)
+            self.folder_watcher.centroids.clear()
             # self.logger.info("Alignment DISABLED")
 
 

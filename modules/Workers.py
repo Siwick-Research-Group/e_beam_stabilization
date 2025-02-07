@@ -22,17 +22,18 @@ import os
 import sys 
 from PyQt5 import QtWidgets
 
+
 class FolderWatcherWorker(QFileSystemWatcher):
     """
     Class that watches a folder for new HDF5 images and processes them in a non-blocking fashion.
     """
 
     image_ready = pyqtSignal(np.ndarray)
-    centroid_ready = pyqtSignal(np.ndarray)
     new_file_ready = pyqtSignal(str)
     ellipse_points_ready = pyqtSignal(np.ndarray)
+    centroid_ready = pyqtSignal(np.ndarray)
 
-    def __init__(self, folder_path=None):
+    def __init__(self):
         super().__init__()
 
         self.worker_thread = QThread()
@@ -43,30 +44,57 @@ class FolderWatcherWorker(QFileSystemWatcher):
         self.logger.info(f"Folder watcher thread: {self.worker_thread.currentThreadId()}")
         self.directoryChanged.connect(self.find_newest_file)
         self.new_file_ready.connect(self.process_image)
+        
         self.latest_file = None
-        
-        if folder_path !=None:
-            self.update_folder_selected(folder_path)
-        
+        self.snapshot = []
+        self.experiment_path = None
+            
+        self.centroids = deque(maxlen=5)
+    
+    def add_centroid_to_deque(self, centroid):
+        self.centroids.append(centroid)
+        if len(self.centroids) == self.centroids.maxlen:
+            avg = np.mean(self.centroids, axis=0)
+            # self.logger.info(f'Centroid found from {self.centroids.maxlen} imgs: {avg}'.ljust(25))
+            self.centroid_ready.emit(avg)
+            self.centroids.clear()
 
     def find_newest_file(self):
-        files = glob(os.path.join(self.directories()[0], '*.h5'))
-        _latest_file = max(files, key=os.path.getctime)
-        if _latest_file != self.latest_file:
+        # Find files from the folders you care about ...
+        sub_folders = []
+        sub_folders.append(os.path.join(self.experiment_path,'pump_off'))
+        sub_folders.extend(glob(os.path.join(self.experiment_path,'scan_*')))
+
+        files = []
+        for sub_directory in sub_folders:
+            files.extend(glob(os.path.join(sub_directory, '*.h5')))
+        
+        try:
+            _latest_file = max(files, key=os.path.getctime)
+        except ValueError:
+            self.logger.error("One of the files Not Found while sorting by creation time.")
+        if _latest_file != self.latest_file and _latest_file not in self.snapshot:
             self.new_file_ready.emit(_latest_file)
-            self.logger.info(f'{_latest_file}')
+            # self.logger.info(f'{_latest_file}')
             self.latest_file = _latest_file
+            self.snapshot = files
         
 
-    def update_folder_selected(self,path):
+    @ pyqtSlot(str)
+    def update_folder_watched(self,new_experiment_path = None):
         if self.directories:
             [self.removePath(p) for p in self.directories()]
-        self.addPath(path)
-
+        
+        if new_experiment_path != None:
+            self.experiment_path = new_experiment_path
+        self.addPath(self.experiment_path)
+        
+        
     @ pyqtSlot(str)
     def process_image(self, file_path):
-        self.logger.info('Processing Image.')
+        # self.logger.info('Processing Image.')
         mask = np.rot90(~(np.load('log/full_dectris_mask.npy').astype(bool)), k=3)
+        sleep(.5)
         try:
             with h5py.File(file_path, 'r') as f:
                 image = f['entry/data/data'][...].squeeze()  # Extract the (1,512,512) image
@@ -81,21 +109,19 @@ class FolderWatcherWorker(QFileSystemWatcher):
             return
 
         self.image_ready.emit(image)
-        t0 = time()
         try:
-            center, pts_fitted = find_image_center(image)
+            center, pts_fitted = find_image_center(image, center_beam_threshold=1400)
             self.ellipse_points_ready.emit(pts_fitted)
         except Exception as e:
             self.logger.error(f"Error finding centroid in {file_path}: {e}")
             return  
         
-        t1 = time()
-        self.logger.info(f'Centroid found: {center}'.ljust(15) + f', took {t1-t0:.2f} seconds')
-        self.centroid_ready.emit(center)
-
+        self.add_centroid_to_deque(center)
 
     def __del__(self):
         pass
+    
+        
 
 
 class MOTOR_TYPES(IntEnum):
@@ -223,23 +249,18 @@ class AlignWorker(QObject):
                 self.__move_rel(m_channel, negative_move)
                 image1 = self.get_dectris_image()
                 self.image_ready.emit(image1)
-                t0 = time()
                 
                 centroid1, _ = find_image_center(image1, center_beam_threshold=1400)
                 
                 self.centroid_ready.emit(centroid1)
-                t1 = time()
-                self.logger.info("Centroid @: " + f"{centroid1} ({t1-t0:.2f} seconds)")
             ############################################################################################################
                 self.logger.debug("POSITIVE Moving motor channel " + f"{m_channel} ")
                 positive_move = 2 * AMM_STEP
                 self.__move_rel(m_channel, positive_move)
                 image2 = self.get_dectris_image()
                 self.image_ready.emit(image2)
-                centroid2, _ = find_image_center(image2, center_beam_threshold=1500)
+                centroid2, _ = find_image_center(image2, center_beam_threshold=1400)
                 self.centroid_ready.emit(centroid2)
-                self.logger.info("Centroid @: " + f"{centroid2} ({t1-t0:.2f} seconds)")
-
                 for j, (new_pos, old_pos) in enumerate(zip(centroid2, centroid1)):
                     mm_n[j, i] = (new_pos - old_pos) / AMM_STEP
 

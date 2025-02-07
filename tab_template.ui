@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1500</width>
-    <height>1000</height>
+    <width>1501</width>
+    <height>1128</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -167,7 +167,7 @@
        <layout class="QVBoxLayout" name="verticalLayout_2">
         <item>
          <widget class="QWidget" name="widget" native="true">
-          <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0">
+          <layout class="QHBoxLayout" name="horizontalLayout" stretch="0">
            <property name="spacing">
             <number>0</number>
            </property>
@@ -187,23 +187,7 @@
             <number>0</number>
            </property>
            <item>
-            <widget class="ImageViewWidget" name="viewer_1" native="true">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-               <horstretch>1</horstretch>
-               <verstretch>1</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="minimumSize">
-              <size>
-               <width>300</width>
-               <height>300</height>
-              </size>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="ImageViewWidget" name="viewer_2" native="true">
+            <widget class="ImageViewWidget" name="viewer" native="true">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
                <horstretch>1</horstretch>
@@ -406,13 +390,13 @@
           <property name="minimumSize">
            <size>
             <width>0</width>
-            <height>50</height>
+            <height>150</height>
            </size>
           </property>
           <property name="maximumSize">
            <size>
             <width>16777215</width>
-            <height>150</height>
+            <height>300</height>
            </size>
           </property>
           <property name="font">
@@ -433,7 +417,7 @@
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_3">
         <item>
-         <widget class="RecentHistoryPlotWidget" name="dist_1_history" native="true">
+         <widget class="RecentHistoryPlotWidget" name="dist_history" native="true">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
             <horstretch>0</horstretch>
@@ -443,7 +427,7 @@
          </widget>
         </item>
         <item>
-         <widget class="RecentHistoryPlotWidget" name="int_1_history" native="true">
+         <widget class="RecentHistoryPlotWidget" name="int_history" native="true">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
             <horstretch>0</horstretch>
@@ -463,7 +447,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1500</width>
+     <width>1501</width>
      <height>22</height>
     </rect>
    </property>

@@ -1,5 +1,3 @@
-from deepdiff import DeepDiff
-from pprint import pprint
 from PyQt5 import QtWidgets, uic, QtGui, QtCore
 from PyQt5 import uic
 import logging
@@ -8,10 +6,8 @@ import pyqtgraph as pg
 import numpy as np
 import logging
 from collections import deque
-import copy
 from PyQt5.QtWidgets import QFileDialog
 import os
-from modules.Workers import FolderWatcherWorker
 from collections import deque
 
 class GuiLogger(logging.Handler, QtCore.QObject):
@@ -48,17 +44,16 @@ class _GuiMainWindow(QtWidgets.QMainWindow):
 
         # Set up plotting page
         # # labels
-        self.dist_1_history.getPlotItem().getAxis("left").setLabel("Offset 1 (mag.)")
-        self.int_1_history.getPlotItem().getAxis("left").setLabel("Image Sum 1")
+        self.dist_history.getPlotItem().getAxis("left").setLabel("Offset (mag.)")
+        self.int_history.getPlotItem().getAxis("left").setLabel("Image Sum 1")
         # # axis-linkes
-        self.int_1_history.setXLink(self.dist_1_history)
+        self.int_history.setXLink(self.dist_history)
 
         # set histogram for pixel values 0 to 255
-        self.hist_1 = self.viewer_1.getHistogramWidget()
-        self.hist_1.setHistogramRange(-10, 270)
+        self.histogram = self.viewer.getHistogramWidget()
+        self.histogram.setHistogramRange(0, 4000)
 
-        self.viewer_1.cursor_changed.connect(self.update_cursor_info)
-        self.viewer_2.cursor_changed.connect(self.update_cursor_info)
+        self.viewer.cursor_changed.connect(self.update_cursor_info)
 
         self.centroid_pen = pg.mkPen(cosmetic=True, width=5,
                                      color=pg.mkColor(184, 134, 11, 100))
@@ -67,7 +62,7 @@ class _GuiMainWindow(QtWidgets.QMainWindow):
         #     pos=None, angle=135, pen=self.centroid_pen),
         #     pg.InfiniteLine(pos=None, angle=45, pen=self.centroid_pen)]
 
-        self.centroid_2_lines = [pg.InfiniteLine(
+        self.centroid_lines = [pg.InfiniteLine(
             pos=None, angle=135, pen=self.centroid_pen),
             pg.InfiniteLine(pos=None, angle=45, pen=self.centroid_pen)]
 
@@ -78,35 +73,25 @@ class _GuiMainWindow(QtWidgets.QMainWindow):
         #     pos=None, angle=0, pen=self.target_pen),
         #     pg.InfiniteLine(pos=None, angle=90, pen=self.target_pen)]
 
-        self.target_2_lines = [pg.InfiniteLine(
+        self.target_lines = [pg.InfiniteLine(
             pos=None, angle=0, pen=self.target_pen),
             pg.InfiniteLine(pos=None, angle=90, pen=self.target_pen)]
         
         self.ellipse_points_scatter = pg.ScatterPlotItem()
-        self.viewer_2.addItem(self.ellipse_points_scatter)
+        self.viewer.addItem(self.ellipse_points_scatter)
 
         # self.traj_color = (178, 34, 34, 150)
-
-        # self.traj_1 = pg.ScatterPlotItem()
         # self.traj_2 = pg.ScatterPlotItem()
-        # self.traj_1.setBrush(self.traj_color)
         # self.traj_2.setBrush(self.traj_color)
-        # self.traj_1.setSymbol('x')
         # self.traj_2.setSymbol('x')
-        # self.traj_1.setSize(15)
         # self.traj_2.setSize(15)
 
-        # self.viewer_1.getView().addItem(self.traj_1)
-        # self.viewer_2.getView().addItem(self.traj_2)
-        # self.traj_1.setVisible(False)
+        # self.viewer.getView().addItem(self.traj_2)
         # self.traj_2.setVisible(False)
 
-        # [self.viewer_1.getView().addItem(l) for l in self.centroid_1_lines]
-        [self.viewer_2.getView().addItem(l) for l in self.centroid_2_lines]
-        # [self.viewer_1.getView().addItem(l) for l in self.target_1_lines]
-        [self.viewer_2.getView().addItem(l) for l in self.target_2_lines]
+        [self.viewer.getView().addItem(l) for l in self.centroid_lines]
+        [self.viewer.getView().addItem(l) for l in self.target_lines]
 
-        # self.traj_1_data = deque(maxlen=50)
         # self.traj_2_data = deque(maxlen=50)
 
         # self.center_locked_label.setText("Center Locked: 🔴")
@@ -117,6 +102,7 @@ class _GuiMainWindow(QtWidgets.QMainWindow):
         self.init_buttons()
 
     def plot_ellipse_points(self, points):
+        points = points.astype(float)
         points += 0.5
         self.ellipse_points_scatter.clear()
         self.ellipse_points_scatter.addPoints(*points.T)
@@ -138,10 +124,10 @@ class _GuiMainWindow(QtWidgets.QMainWindow):
         
 
     def watch_folder_dialog(self):
-        dialog = QFileDialog(self, caption='Watching Folder for New Images')
+        dialog = QFileDialog(self, caption='Select Experiment Folder to WATCH')
         dialog.setOption(QtWidgets.QFileDialog.DontUseNativeDialog, False)
         dialog.setFileMode(QtWidgets.QFileDialog.Directory)
-        # dialog.setOption(QtWidgets.QFileDialog.ShowDirsOnly, True)
+        dialog.setOption(QtWidgets.QFileDialog.ShowDirsOnly, True)
         dialog.setLabelText(QtWidgets.QFileDialog.Accept, "Select Folder")
         if dialog.exec_():
             folders = dialog.selectedFiles()
@@ -178,26 +164,25 @@ class _GuiMainWindow(QtWidgets.QMainWindow):
     @ QtCore.pyqtSlot(np.ndarray)
     def update_dectris_image(self, image):
         '''Updates image viewer 1 and 2 separately. If any of them is none, put blank'''
-        self.image_2 = image
+        self.image = image
 
-        self.viewer_2.clear()
-        self.viewer_2.setImage(self.image_2, autoRange=False, autoLevels=False,
+        self.viewer.clear()
+        self.viewer.setImage(self.image, autoRange=False, autoLevels=False,
                                autoHistogramRange=False)
 
 
     @ QtCore.pyqtSlot(np.ndarray)
     def update_dectris_centroid(self, centroid):
         self.dectris_centroids.append(centroid)
-        print(f"Dectris Center updated: {centroid}")
         
         if True not in np.isnan(centroid):
-            [l.setPos(centroid) for l in self.centroid_2_lines]
+            [l.setPos(centroid) for l in self.centroid_lines]
             
             
     @ QtCore.pyqtSlot(list)
     def update_dectris_target(self, target):
         t2 = target
-        [l.setPos(t2) for l in self.target_2_lines]
+        [l.setPos(t2) for l in self.target_lines]
 
     # @ QtCore.pyqtSlot(list)
     # def new_target(self, targets):
@@ -207,11 +192,11 @@ class _GuiMainWindow(QtWidgets.QMainWindow):
         
         if state == QtCore.Qt.Checked:
             # [l.setVisible(True) for l in self.centroid_1_lines]
-            [l.setVisible(True) for l in self.centroid_2_lines]
+            [l.setVisible(True) for l in self.centroid_lines]
 
         else:
             # [l.setVisible(False) for l in self.centroid_1_lines]
-            [l.setVisible(False) for l in self.centroid_2_lines]
+            [l.setVisible(False) for l in self.centroid_lines]
 
     # def _check_trajectories(self, state):
         
