@@ -156,7 +156,7 @@ def read_h5_data(file_name, group_name):
 
 
 
-def find_image_center(image, center_beam_threshold=1400):
+def find_image_center(image, center_beam_threshold=100):
     mask = ~(np.load('log/full_dectris_mask.npy').astype(bool))
     if type(image)==str:
         image = read_h5_data(image, "entry/data/data").squeeze() * mask
@@ -164,7 +164,11 @@ def find_image_center(image, center_beam_threshold=1400):
     else:
         image = image.squeeze() * mask
 
-    com_coors = np.array([np.array([ver, hor]) for ver in range(image.shape[0]) for hor in range(image.shape[1]) if image[ver, hor] > center_beam_threshold])
+    # com_coors = np.array([np.array([ver, hor]) for ver in range(image.shape[0]) for hor in range(image.shape[1]) if image[ver, hor] > center_beam_threshold])
+    flat_indices = np.argsort(image.ravel())[-center_beam_threshold:]
+    com_coors = np.column_stack(np.unravel_index(flat_indices, image.shape))
+    
+
     try:
         y0, x0, angle, wlong, wshort = fit_ellipse(com_coors[:, 0], com_coors[:, 1])
     except ValueError:

@@ -55,7 +55,7 @@ class FolderWatcherWorker(QFileSystemWatcher):
         self.centroids.append(centroid)
         if len(self.centroids) == self.centroids.maxlen:
             avg = np.mean(self.centroids, axis=0)
-            # self.logger.info(f'Centroid found from {self.centroids.maxlen} imgs: {avg}'.ljust(25))
+            self.logger.info(f'Centroid found from {self.centroids.maxlen} imgs: {avg}'.ljust(25))
             self.centroid_ready.emit(avg)
             self.centroids.clear()
 
@@ -78,6 +78,28 @@ class FolderWatcherWorker(QFileSystemWatcher):
             # self.logger.info(f'{_latest_file}')
             self.latest_file = _latest_file
             self.snapshot = files
+
+
+    def malik_find_newest_file(self, path):
+        if os.path.isdir(path):
+            subdirs = [os.path.join(path, d) for d in os.listdir(path) if os.path.isdir(os.path.join(path, d))]
+            if subdirs:
+                path = max(subdirs, key=os.path.getmtime)
+            if "scan" in os.path.basename(path):
+                if "scan" in os.path.basename(self.directories()[-1]) and int(os.path.basename(self.directories()[-1])[5:]) != int(os.path.basename(path)[5:]):
+                    self.removePath(self.directories()[-1])
+                self.addPath(os.path.join(self.experiment_path, os.path.basename(path)))
+
+            try:
+                if sum(1 for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))) > 0 and ("pump_off" in path or "scan" in path):
+                    _latest_file = max(glob(os.path.join(path, '*.h5')), key=os.path.getctime)
+                    if _latest_file != self.latest_file:
+                        self.new_file_ready.emit(_latest_file)
+                        self.latest_file = _latest_file
+                        self.logger.info(f"{_latest_file}: detected.")
+
+            except ValueError:
+                self.logger.error("One of the files Not Found while sorting by creation time.")
         
 
     @ pyqtSlot(str)
@@ -88,6 +110,8 @@ class FolderWatcherWorker(QFileSystemWatcher):
         if new_experiment_path != None:
             self.experiment_path = new_experiment_path
         self.addPath(self.experiment_path)
+        # self.addPath(os.path.join(self.experiment_path, "pump_off"))
+
         
         
     @ pyqtSlot(str)
@@ -110,8 +134,9 @@ class FolderWatcherWorker(QFileSystemWatcher):
 
         self.image_ready.emit(image)
         try:
-            center, pts_fitted = find_image_center(image, center_beam_threshold=1400)
+            center, pts_fitted = find_image_center(image)
             self.ellipse_points_ready.emit(pts_fitted)
+            self.logger.info(f"center is {center}")
         except Exception as e:
             self.logger.error(f"Error finding centroid in {file_path}: {e}")
             return  
@@ -250,7 +275,7 @@ class AlignWorker(QObject):
                 image1 = self.get_dectris_image()
                 self.image_ready.emit(image1)
                 
-                centroid1, _ = find_image_center(image1, center_beam_threshold=1400)
+                centroid1, _ = find_image_center(image1)
                 
                 self.centroid_ready.emit(centroid1)
             ############################################################################################################
@@ -259,7 +284,7 @@ class AlignWorker(QObject):
                 self.__move_rel(m_channel, positive_move)
                 image2 = self.get_dectris_image()
                 self.image_ready.emit(image2)
-                centroid2, _ = find_image_center(image2, center_beam_threshold=1400)
+                centroid2, _ = find_image_center(image2)
                 self.centroid_ready.emit(centroid2)
                 for j, (new_pos, old_pos) in enumerate(zip(centroid2, centroid1)):
                     mm_n[j, i] = (new_pos - old_pos) / AMM_STEP
@@ -282,7 +307,7 @@ class AlignWorker(QObject):
         while np.any(np.isnan(centroid)):
             image = self.get_dectris_image()
             self.image_ready.emit(image)
-            centroid, pts_fitted = find_image_center(image, center_beam_threshold=1400)
+            centroid, pts_fitted = find_image_center(image)
             self.ellipse_points_ready.emit(pts_fitted)
             self.logger.info('nan centroid found, retrying...')
         self.disconnect_dectris()
