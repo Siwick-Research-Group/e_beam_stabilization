@@ -59,7 +59,7 @@ class FolderWatcherWorker(QFileSystemWatcher):
             self.centroid_ready.emit(avg)
             self.centroids.clear()
 
-    def find_newest_file(self):
+    def david_find_newest_file(self):
         # Find files from the folders you care about ...
         sub_folders = []
         sub_folders.append(os.path.join(self.experiment_path,'pump_off'))
@@ -80,7 +80,7 @@ class FolderWatcherWorker(QFileSystemWatcher):
             self.snapshot = files
 
 
-    def malik_find_newest_file(self, path):
+    def find_newest_file(self, path):
         if os.path.isdir(path):
             subdirs = [os.path.join(path, d) for d in os.listdir(path) if os.path.isdir(os.path.join(path, d))]
             if subdirs:
@@ -110,7 +110,7 @@ class FolderWatcherWorker(QFileSystemWatcher):
         if new_experiment_path != None:
             self.experiment_path = new_experiment_path
         self.addPath(self.experiment_path)
-        # self.addPath(os.path.join(self.experiment_path, "pump_off"))
+        self.addPath(os.path.join(self.experiment_path, "pump_off"))
 
         
         
