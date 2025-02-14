@@ -164,6 +164,7 @@ def find_image_center(image, center_beam_threshold=100):
     else:
         image = image.squeeze() * mask
 
+    image[image>1e7] = 0
     # com_coors = np.array([np.array([ver, hor]) for ver in range(image.shape[0]) for hor in range(image.shape[1]) if image[ver, hor] > center_beam_threshold])
     flat_indices = np.argsort(image.ravel())[-center_beam_threshold:]
     com_coors = np.column_stack(np.unravel_index(flat_indices, image.shape))

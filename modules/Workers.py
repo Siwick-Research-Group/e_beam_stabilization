@@ -96,7 +96,7 @@ class FolderWatcherWorker(QFileSystemWatcher):
                     if _latest_file != self.latest_file:
                         self.new_file_ready.emit(_latest_file)
                         self.latest_file = _latest_file
-                        self.logger.info(f"{_latest_file}: detected.")
+                        # self.logger.info(f"{_latest_file}: detected.")
 
             except ValueError:
                 self.logger.error("One of the files Not Found while sorting by creation time.")
@@ -128,6 +128,7 @@ class FolderWatcherWorker(QFileSystemWatcher):
                 image /= exposure
                 image = np.rot90(image, k=3) * mask
 
+
         except Exception as e:
             self.logger.error(f"Error reading file {file_path}: {e}")
             return
@@ -136,7 +137,7 @@ class FolderWatcherWorker(QFileSystemWatcher):
         try:
             center, pts_fitted = find_image_center(image)
             self.ellipse_points_ready.emit(pts_fitted)
-            self.logger.info(f"center is {center}")
+            # self.logger.info(f"center is {center}")
         except Exception as e:
             self.logger.error(f"Error finding centroid in {file_path}: {e}")
             return  
@@ -264,7 +265,7 @@ class AlignWorker(QObject):
         
         mm = np.zeros((n_sample, 2, 2))
 
-        AMM_STEP = 300
+        AMM_STEP = 100
 
         for idn in range(n_sample):
             mm_n = np.zeros((2, 2))
@@ -341,7 +342,7 @@ class AlignWorker(QObject):
     def __move_rel(self, motor_channel, dist, blocked=True):
         if abs(dist) >=0.5:
             dist = int(np.rint(dist))
-        self.motor_controller.set_relative(motor_channel, dist)
+            self.motor_controller.set_relative(motor_channel, dist)
 
         if blocked:
             while not self.motor_controller.done(motor_channel):
